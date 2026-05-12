@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orpheus Music Transformer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{fontFamily:{display:['"Playfair Display"','serif'],sans:['"DM Sans"','sans-serif']}}}}
+</script>
+<style>
+:root {
+    --bg:#080810;--bg2:#0e0e1a;--card:rgba(18,18,34,0.65);--card-solid:#121222;
+    --card-hover:rgba(24,24,44,0.75);--input:#0a0a18;--border:rgba(255,255,255,0.06);
+    --border-lt:rgba(255,255,255,0.12);
+    --accent:#f0a030;--accent-lt:#ffc854;--accent-dk:#a06810;
+    --accent2:#00ddc0;--accent2-lt:#40ffe8;--accent2-dk:#008878;
+    --accent3:#ff4080;--accent3-dk:#aa2060;
+    --accent4:#8b5cf6;
+    --accent-glow:rgba(240,160,48,0.15);--accent2-glow:rgba(0,221,192,0.12);
+    --text:#ede8e0;--text2:#a098a8;--muted:#605868;
+    --ok:#00ddc0;--err:#ff4060;--warn:#f0a030;
+    --glass-blur:18px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.7}
+.page-wrap{position:relative;z-index:1}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-dk)}
+.card{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:1.25rem;transition:border-color .3s,box-shadow .3s,transform .2s;
+    backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));
+    position:relative;overflow:hidden;
+}
+.card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(240,160,48,0.2),rgba(0,221,192,0.15),transparent);
+    opacity:0;transition:opacity .3s;
+}
+.card:hover{border-color:var(--border-lt);box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+.card:hover::before{opacity:1}
+.inp{background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:.55rem .85rem;font-size:.875rem;font-family:'DM Sans',sans-serif;transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.inp::placeholder{color:var(--muted)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-lt));border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 10px var(--accent-glow);transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-lt));border:2px solid var(--bg);cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.2rem;border-radius:10px;font-weight:600;font-size:.875rem;cursor:pointer;border:none;transition:all .25s;font-family:'DM Sans',sans-serif;text-decoration:none;line-height:1.4}
+.btn-primary{
+    background:linear-gradient(135deg,var(--accent),var(--accent-lt));color:#0a0908;
+    box-shadow:0 4px 24px var(--accent-glow),0 0 60px rgba(240,160,48,0.08);
+    position:relative;overflow:hidden;
+}
+.btn-primary::after{
+    content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+    background:linear-gradient(45deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%);
+    animation:btnShimmer 3s ease-in-out infinite;
+}
+@keyframes btnShimmer{0%,100%{transform:translateX(-100%) rotate(25deg)}50%{transform:translateX(100%) rotate(25deg)}}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 32px rgba(240,160,48,0.3),0 0 80px rgba(240,160,48,0.1)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-ghost{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text2);backdrop-filter:blur(8px)}
+.btn-ghost:hover{border-color:var(--accent-dk);color:var(--accent-lt);background:var(--accent-glow);box-shadow:0 0 20px var(--accent-glow)}
+.btn-accent2{background:linear-gradient(135deg,var(--accent2-dk),var(--accent2));color:#080810;box-shadow:0 4px 20px var(--accent2-glow)}
+.btn-accent2:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(0,221,192,0.25)}
+.btn-danger{background:linear-gradient(135deg,var(--accent3-dk),var(--accent3));color:#fff;box-shadow:0 4px 20px rgba(255,64,128,0.15)}
+.btn-danger:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(255,64,128,0.25)}
+.tag{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .65rem;background:var(--accent-glow);border:1px solid var(--accent-dk);border-radius:8px;font-size:.75rem;color:var(--accent-lt);cursor:default;transition:all .2s;white-space:nowrap}
+.tag .rm{cursor:pointer;opacity:.7;font-size:.65rem;transition:opacity .15s}
+.tag .rm:hover{opacity:1}
+.ck-label{display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem;color:var(--text2);user-select:none}
+.ck-label input{display:none}
+.ck-box{width:18px;height:18px;border:2px solid var(--border-lt);border-radius:5px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.ck-label input:checked+.ck-box{background:var(--accent);border-color:var(--accent)}
+.ck-label input:checked+.ck-box::after{content:'\f00c';font-family:'Font Awesome 6 Free';font-weight:900;font-size:.6rem;color:#0a0908}
+.dd-wrap{position:relative}
+.dd-list{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card-solid);border:1px solid var(--border-lt);border-radius:10px;max-height:220px;overflow-y:auto;margin-top:4px;display:none;box-shadow:0 16px 48px rgba(0,0,0,0.5)}
+.dd-list.open{display:block}
+.dd-item{padding:.5rem .85rem;font-size:.8rem;cursor:pointer;color:var(--text2);transition:background .15s}
+.dd-item:hover{background:var(--accent-glow);color:var(--accent-lt)}
+.dd-item.disabled{opacity:.35;pointer-events:none}
+.batch-card{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    overflow:hidden;transition:all .3s;backdrop-filter:blur(12px);
+}
+.batch-card:hover{border-color:rgba(240,160,48,0.3);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.batch-card .batch-head{
+    padding:.55rem .85rem;
+    background:linear-gradient(135deg,rgba(240,160,48,0.08),rgba(0,221,192,0.05));
+    border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;
+}
+.batch-card .batch-body{padding:.75rem}
+audio{width:100%;height:36px;border-radius:8px;outline:none;filter:sepia(.15) saturate(1.3) hue-rotate(-5deg)}
+.toast-wrap{position:fixed;top:1rem;right:1rem;z-index:1100;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast{pointer-events:auto;padding:.75rem 1.1rem;border-radius:10px;font-size:.85rem;display:flex;align-items:center;gap:.5rem;animation:slideIn .3s ease;min-width:260px;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,0.4);backdrop-filter:blur(12px)}
+.toast-ok{background:rgba(0,60,50,0.85);border:1px solid rgba(0,221,192,0.3);color:var(--ok)}
+.toast-err{background:rgba(60,10,20,0.85);border:1px solid rgba(255,64,96,0.3);color:var(--err)}
+.toast-info{background:rgba(20,20,60,0.85);border:1px solid rgba(139,92,246,0.3);color:#b8a0ff}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
+.loading-overlay{position:fixed;inset:0;z-index:1000;background:rgba(8,8,16,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;backdrop-filter:blur(8px)}
+.spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,0.08);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sec-title{font-family:'Playfair Display',serif;font-weight:700;font-size:1.35rem;color:var(--text);margin-bottom:.75rem;display:flex;align-items:center;gap:.55rem}
+.sec-title .icon{color:var(--accent);font-size:1rem;filter:drop-shadow(0 0 6px var(--accent-glow))}
+.drop-zone{border:2px dashed rgba(255,255,255,0.1);border-radius:12px;padding:2rem;text-align:center;cursor:pointer;transition:all .3s;background:var(--input)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent-dk);background:var(--accent-glow)}
+.drop-zone.has-file{border-color:var(--ok);border-style:solid;background:rgba(0,221,192,0.05)}
+select.inp{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23605868'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .75rem center;padding-right:2rem;cursor:pointer}
+.glow-divider{height:1px;border:none;margin:2.5rem 0;background:linear-gradient(90deg,transparent,rgba(240,160,48,0.2),rgba(0,221,192,0.15),transparent)}
+.link-btn{
+    display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border-radius:8px;
+    font-size:.78rem;font-weight:500;cursor:pointer;border:1px solid var(--border);
+    color:var(--text2);text-decoration:none;transition:all .2s;
+    background:rgba(255,255,255,0.03);backdrop-filter:blur(6px);
+}
+.link-btn:hover{border-color:var(--accent-dk);color:var(--accent-lt);background:var(--accent-glow);box-shadow:0 0 16px var(--accent-glow)}
+.pulse-dot{width:8px;height:8px;border-radius:50%;display:inline-block;animation:pulse 1.5s ease-in-out infinite}
+.pulse-dot.ok{background:var(--ok);box-shadow:0 0 8px var(--accent2-glow)}.pulse-dot.err{background:var(--err);box-shadow:0 0 8px rgba(255,64,96,0.3)}.pulse-dot.warn{background:var(--warn);box-shadow:0 0 8px var(--accent-glow)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem}
+.feat-item{
+    padding:.85rem 1rem;border-radius:12px;border:1px solid var(--border);
+    background:rgba(255,255,255,0.02);font-size:.82rem;color:var(--text2);line-height:1.55;
+    transition:all .3s;backdrop-filter:blur(8px);
+}
+.feat-item:hover{border-color:rgba(240,160,48,0.2);background:var(--accent-glow);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.2)}
+.feat-item strong{color:var(--accent-lt)}
+.batch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.85rem}
+.piano-roll-canvas{width:100%;border-radius:8px;display:block;background:#060610}
+.hero-title{
+    font-family:'Playfair Display',serif;font-weight:900;font-size:2.6rem;line-height:1.05;
+    background:linear-gradient(135deg,var(--text) 0%,var(--accent-lt) 50%,var(--accent2) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+    filter:drop-shadow(0 0 30px rgba(240,160,48,0.1));
+}
+#moduleLoading{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+@media(max-width:640px){.batch-grid{grid-template-columns:1fr}.feat-grid{grid-template-columns:1fr}.hero-title{font-size:1.8rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.composition-section{
+    background:linear-gradient(135deg,rgba(240,160,48,0.04),rgba(0,221,192,0.03),rgba(139,92,246,0.03));
+    border:1px solid rgba(240,160,48,0.15);
+}
+.tips-section{border-left:3px solid var(--accent);background:linear-gradient(90deg,rgba(240,160,48,0.04),transparent)}
+</style>
+</head>
+<body>
+
+<div id="moduleLoading">
+    <div class="spinner"></div>
+    <p style="color:var(--text2);margin:0;font-size:.9rem;">Loading Orpheus Interface...</p>
+    <p id="moduleLoadStatus" style="color:var(--muted);margin:0;font-size:.75rem;">Importing Gradio client...</p>
+</div>
+
+<canvas id="bg-canvas"></canvas>
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+    <div class="spinner"></div>
+    <div style="text-align:center">
+        <div id="loadingTitle" style="font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--accent-lt);margin-bottom:.35rem;">Generating Music</div>
+        <div id="loadingMsg" style="font-size:.85rem;color:var(--text2);">Connecting to Orpheus...</div>
+    </div>
+    <button class="btn btn-ghost" onclick="window._cancelGen&&window._cancelGen()" style="margin-top:.5rem">Cancel</button>
+</div>
+
+<div class="page-wrap">
+<header style="background:linear-gradient(180deg,rgba(240,160,48,0.05) 0%,rgba(0,221,192,0.02) 40%,transparent 100%);border-bottom:1px solid var(--border);position:relative;overflow:hidden">
+    <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(240,160,48,0.06),transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(0,221,192,0.05),transparent 70%);pointer-events:none"></div>
+    <div style="max-width:1100px;margin:0 auto;padding:1.75rem 1.25rem 1.25rem;position:relative">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+            <div>
+                <h1 class="hero-title" style="margin:0">Orpheus Music Transformer</h1>
+                <p style="font-size:.95rem;color:var(--text2);margin:.6rem 0 0;max-width:560px;line-height:1.55">SOTA 8k multi-instrumental music transformer trained on 2.31M+ high-quality MIDIs</p>
+                <p style="font-size:.82rem;color:var(--accent2);margin:.35rem 0 0;font-weight:600">Now featuring large optimized model</p>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+                <a class="link-btn" href="https://asigalov61.github.io/Orpheus-Music-Transformer-User-Guide/" target="_blank"><i class="fas fa-book"></i> User Guide</a>
+                <a class="link-btn" href="https://huggingface.co/spaces/asigalov61/Orpheus-Music-Transformer?duplicate=true" target="_blank"><i class="fas fa-copy"></i> Duplicate</a>
+                <a class="link-btn" href="https://huggingface.co/asigalov61/Orpheus-Music-Transformer" target="_blank"><i class="fas fa-heart"></i> Models</a>
+                <a class="link-btn" href="https://huggingface.co/collections/asigalov61/orpheus-music-transformer" target="_blank"><i class="fas fa-rocket"></i> Spaces</a>
+                <a class="link-btn" href="https://huggingface.co/datasets/projectlosangeles/Godzilla-MIDI-Dataset" target="_blank"><i class="fas fa-database"></i> Dataset</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main style="max-width:1100px;margin:0 auto;padding:1.5rem 1.25rem 3rem">
+
+<section class="card" style="margin-bottom:1.25rem" id="authSection">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('authBody','authChev')">
+        <div class="sec-title" style="margin:0"><i class="fas fa-plug icon"></i> Connection</div>
+        <i class="fas fa-chevron-down" id="authChev" style="color:var(--muted);font-size:.75rem;transition:transform .3s"></i>
+    </div>
+    <div id="authBody" style="margin-top:1rem;display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+            <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:.3rem">HF_AUTH Token (optional, for private/gated spaces)</label>
+            <div style="position:relative">
+                <input type="password" id="hfToken" class="inp" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" style="padding-right:2.5rem">
+                <button onclick="toggleTokVis()" style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem" aria-label="Toggle token visibility"><i class="fas fa-eye" id="tokEye"></i></button>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="doConnect()" id="connectBtn"><i class="fas fa-link"></i> Connect</button>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.82rem">
+            <span class="pulse-dot" id="statusDot" style="background:var(--muted);animation:none"></span>
+            <span id="statusText" style="color:var(--muted)">Not connected</span>
+        </div>
+    </div>
+</section>
+
+<section style="margin-bottom:1.25rem">
+    <div class="sec-title"><i class="fas fa-star icon"></i> Key Features</div>
+    <div class="feat-grid">
+        <div class="feat-item"><strong>Efficient Architecture with RoPE</strong> — Large optimized 748M full attention autoregressive transformer with RoPE</div>
+        <div class="feat-item"><strong>Extended Sequence Length</strong> — 8k tokens fitting most compositions and enabling long-term structure generation</div>
+        <div class="feat-item"><strong>Premium Training Data</strong> — Trained solely on the highest-quality MIDIs from the Godzilla MIDI dataset</div>
+        <div class="feat-item"><strong>Optimized MIDI Encoding</strong> — Extremely efficient 3 tokens per note and 7 tokens per tri-chord</div>
+        <div class="feat-item"><strong>Distinct Encoding Order</strong> — Unique duration/velocity last encoding order for refined expression</div>
+        <div class="feat-item"><strong>Full-Range Instrumental Learning</strong> — True full-range MIDI instruments encoding for separate instrument learning</div>
+        <div class="feat-item"><strong>Natural Composition Endings</strong> — Outro tokens for smooth and natural musical conclusions</div>
+    </div>
+</section>
+
+<section class="card tips-section" style="margin-bottom:1.25rem">
+    <div class="sec-title"><i class="fas fa-lightbulb icon"></i> Best Practices</div>
+    <ul style="margin:0;padding-left:1.2rem;font-size:.84rem;color:var(--text2);line-height:1.8">
+        <li>Good prime seed MIDI is everything — trim to an exact or approximate musical phrase</li>
+        <li>30sec–1min (1024–1536 tokens) run time is ideal</li>
+        <li>Remove excessive instruments — 4–5 most pronounced work best</li>
+        <li>Don't be discouraged by generated continuations — sometimes several tries are needed</li>
+        <li>Don't strive for perfection — try to have fun and enjoy the music</li>
+    </ul>
+</section>
+
+<hr class="glow-divider">
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem" id="inputGrid">
+    <section class="card">
+        <div class="sec-title"><i class="fas fa-file-audio icon"></i> Seed MIDI</div>
+        <p style="font-size:.78rem;color:var(--muted);margin:0 0 .75rem">Upload a MIDI file as a seed, or leave empty for random generation</p>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('midiInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+            <input type="file" id="midiInput" accept=".mid,.midi,.kar" style="display:none" onchange="handleMidiFile(this)">
+            <div id="dropContent">
+                <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--accent-dk);margin-bottom:.5rem;display:block"></i>
+                <span style="font-size:.85rem;color:var(--text2)">Drop a MIDI file here or click to browse</span>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">.mid, .midi, .kar</div>
+            </div>
+        </div>
+        <button class="btn btn-ghost" id="clearMidiBtn" style="margin-top:.5rem;display:none;font-size:.78rem" onclick="clearMidi()"><i class="fas fa-times"></i> Remove file</button>
+    </section>
+    <section class="card">
+        <div class="sec-title"><i class="fas fa-guitar icon"></i> Prime Instruments</div>
+        <p style="font-size:.78rem;color:var(--muted);margin:0 0 .5rem">Select up to 5 instruments (overridden by custom MIDI)</p>
+        <div class="dd-wrap" id="instrDropWrap">
+            <input type="text" class="inp" id="instrSearch" placeholder="Search instruments..." autocomplete="off" onfocus="openInstrDD()" oninput="filterInstr()">
+            <div class="dd-list" id="instrDropdown"></div>
+        </div>
+        <div id="selectedInstr" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem;min-height:28px"></div>
+    </section>
+</div>
+
+<section class="card" style="margin-bottom:1.25rem">
+    <div class="sec-title"><i class="fas fa-sliders-h icon"></i> Generation Options</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.5rem" id="optGrid">
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.3rem">Model</label>
+            <select class="inp" id="modelSelect">
+                <option value="Medium Base Model">Medium Base Model (faster)</option>
+                <option value="Large Base Model">Large Base Model</option>
+                <option value="Large Fine-Tuned Model">Large Fine-Tuned Model (best quality)</option>
+            </select>
+            <div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Medium = speed, Large/Fine-Tuned = quality</div>
+        </div>
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:.3rem"><span>Number of prime tokens</span><span id="primeTokVal" style="color:var(--accent)">6656</span></label>
+            <input type="range" id="primeTokens" min="16" max="6656" value="6656" step="1" oninput="document.getElementById('primeTokVal').textContent=this.value">
+        </div>
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:.3rem"><span>Tokens to generate</span><span id="genTokVal" style="color:var(--accent)">512</span></label>
+            <input type="range" id="genTokens" min="16" max="1024" value="512" step="1" oninput="document.getElementById('genTokVal').textContent=this.value">
+        </div>
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:.3rem"><span>Temperature</span><span id="tempVal" style="color:var(--accent)">0.90</span></label>
+            <input type="range" id="temperature" min="0.1" max="1" value="0.9" step="0.01" oninput="document.getElementById('tempVal').textContent=parseFloat(this.value).toFixed(2)">
+            <div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Higher = more creative, Lower = more repetitive</div>
+        </div>
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:.3rem"><span>Top-p sampling</span><span id="topPVal" style="color:var(--accent)">0.96</span></label>
+            <input type="range" id="topP" min="0.1" max="1" value="0.96" step="0.01" oninput="document.getElementById('topPVal').textContent=parseFloat(this.value).toFixed(2)">
+            <div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">1.0 = disabled</div>
+        </div>
+        <div style="display:flex;gap:1.5rem;align-items:center;padding-top:.5rem">
+            <label class="ck-label"><input type="checkbox" id="addDrums"><span class="ck-box"></span>Add drums</label>
+            <label class="ck-label"><input type="checkbox" id="addOutro"><span class="ck-box"></span>Add outro</label>
+        </div>
+    </div>
+</section>
+
+<div style="text-align:center;margin-bottom:2.5rem">
+    <button class="btn btn-primary" id="generateBtn" onclick="doGenerate()" disabled style="font-size:1.1rem;padding:.9rem 3.5rem;border-radius:12px;letter-spacing:.04em"><i class="fas fa-music"></i> Generate</button>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:.6rem">Orpheus works best with some music context — upload a seed MIDI or select prime instruments</p>
+</div>
+
+<hr class="glow-divider">
+
+<section style="margin-bottom:1.5rem">
+    <div class="sec-title"><i class="fas fa-layer-group icon"></i> Batch Previews</div>
+    <p style="font-size:.78rem;color:var(--muted);margin:0 0 .85rem">10 generation batches — use the Composition Builder below to add them</p>
+    <div class="batch-grid" id="batchGrid"></div>
+</section>
+
+<hr class="glow-divider">
+
+<section class="card composition-section" style="border-color:rgba(240,160,48,0.2)">
+    <div class="sec-title"><i class="fas fa-wand-magic-sparkles icon"></i> Composition Builder</div>
+    <p style="font-size:.78rem;color:var(--muted);margin:0 0 1rem">Add or remove batches to build your final composition</p>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem">
+        <div style="display:flex;align-items:center;gap:.5rem">
+            <label style="font-size:.78rem;color:var(--muted)">Batch #</label>
+            <input type="range" id="batchNumSlider" min="0" max="9" value="0" step="1" style="width:100px" oninput="document.getElementById('batchNumVal').textContent=this.value">
+            <span id="batchNumVal" style="font-size:.85rem;color:var(--accent);min-width:1ch">0</span>
+        </div>
+        <button class="btn btn-accent2" onclick="doAddBatch()" style="font-size:.82rem;padding:.5rem 1rem"><i class="fas fa-plus"></i> Add Batch</button>
+        <button class="btn btn-danger" onclick="doRemoveBatch()" style="font-size:.82rem;padding:.5rem 1rem"><i class="fas fa-minus"></i> Remove</button>
+        <button class="btn btn-ghost" onclick="doClear()" style="font-size:.82rem;padding:.5rem 1rem"><i class="fas fa-trash-alt"></i> Clear All</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="finalGrid">
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.4rem">Final Audio</label>
+            <audio id="finalAudio" controls style="width:100%"></audio>
+        </div>
+        <div>
+            <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.4rem">Download MIDI</label>
+            <div id="finalFileArea" style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--input);border:1px solid var(--border);border-radius:10px;min-height:42px">
+                <span style="font-size:.82rem;color:var(--muted)">No composition yet</span>
+            </div>
+        </div>
+    </div>
+    <div style="margin-top:1rem">
+        <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.4rem">Piano Roll</label>
+        <div id="finalPlotArea" style="background:var(--input);border:1px solid var(--border);border-radius:10px;min-height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <span style="font-size:.82rem;color:var(--muted)">Plot will appear here</span>
+        </div>
+    </div>
+</section>
+
+<section style="margin-top:1.5rem">
+    <div class="sec-title"><i class="fas fa-headphones icon"></i> Listen to Examples</div>
+    <iframe width="100%" height="300" scrolling="no" frameBorder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/playlists/2042253855&color=%23f0a030&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true" style="border-radius:12px;border:1px solid var(--border)"></iframe>
+</section>
+
+</main>
+<footer style="text-align:center;padding:1.5rem;border-top:1px solid var(--border);font-size:.75rem;color:var(--muted)">
+    Orpheus Music Transformer &mdash; Project Los Angeles &mdash; Powered by Hugging Face Spaces
+</footer>
+</div>
+
+<script type="module">
+/* ===================================================================
+   ORPHEUS MUSIC TRANSFORMER — Frontend (Fixed + Enhanced)
+   =================================================================== */
+
+let GradioClient = null;
+let clientLoadError = null;
+const loadStatus = document.getElementById('moduleLoadStatus');
+
+try {
+    loadStatus.textContent = 'Importing @gradio/client from jsDelivr...';
+    const mod = await import('https://cdn.jsdelivr.net/npm/@gradio/client/+esm');
+    GradioClient = mod.Client;
+    loadStatus.textContent = 'Gradio client loaded successfully!';
+} catch (e) {
+    clientLoadError = e;
+    console.warn('Failed to load @gradio/client:', e);
+    loadStatus.textContent = 'Could not load Gradio client — trying fallback...';
+}
+
+setTimeout(() => {
+    document.getElementById('moduleLoading').style.display = 'none';
+    if (clientLoadError) {
+        showToast('Gradio client could not be loaded. Falling back to direct API. If issues persist, serve via HTTP.', 'err', 8000);
+    }
+}, 300);
+
+/* ── Constants ── */
+const SPACE_ID = 'asigalov61/Orpheus-Music-Transformer';
+const SPACE_URL = 'https://asigalov61-orpheus-music-transformer.hf.space';
+const NUM_BATCHES = 10;
+
+const INSTRUMENTS = [
+    "Acoustic Grand Piano","Bright Acoustic Piano","Electric Grand Piano","Honky-tonk Piano",
+    "Electric Piano 1","Electric Piano 2","Harpsichord","Clavinet","Celesta","Glockenspiel",
+    "Music Box","Vibraphone","Marimba","Xylophone","Tubular Bells","Dulcimer",
+    "Drawbar Organ","Percussive Organ","Rock Organ","Church Organ","Reed Organ","Accordion",
+    "Harmonica","Tango Accordion","Acoustic Guitar (nylon)","Acoustic Guitar (steel)",
+    "Electric Guitar (jazz)","Electric Guitar (clean)","Electric Guitar (muted)",
+    "Overdriven Guitar","Distortion Guitar","Guitar Harmonics","Acoustic Bass",
+    "Electric Bass (finger)","Electric Bass (pick)","Fretless Bass","Slap Bass 1",
+    "Slap Bass 2","Synth Bass 1","Synth Bass 2","Violin","Viola","Cello","Contrabass",
+    "Tremolo Strings","Pizzicato Strings","Orchestral Harp","Timpani",
+    "String Ensemble 1","String Ensemble 2","Synth Strings 1","Synth Strings 2",
+    "Choir Aahs","Voice Oohs","Synth Choir","Orchestra Hit","Trumpet","Trombone",
+    "Tuba","Muted Trumpet","French Horn","Brass Section","Synth Brass 1","Synth Brass 2",
+    "Soprano Sax","Alto Sax","Tenor Sax","Baritone Sax","Oboe","English Horn",
+    "Bassoon","Clarinet","Piccolo","Flute","Recorder","Pan Flute","Blown Bottle",
+    "Shakuhachi","Whistle","Ocarina","Lead 1 (square)","Lead 2 (sawtooth)",
+    "Lead 3 (calliope)","Lead 4 (chiff)","Lead 5 (charang)","Lead 6 (voice)",
+    "Lead 7 (fifths)","Lead 8 (bass + lead)","Pad 1 (new age)","Pad 2 (warm)",
+    "Pad 3 (polysynth)","Pad 4 (choir)","Pad 5 (bowed)","Pad 6 (metallic)",
+    "Pad 7 (halo)","Pad 8 (sweep)","FX 1 (rain)","FX 2 (soundtrack)",
+    "FX 3 (crystal)","FX 4 (atmosphere)","FX 5 (brightness)","FX 6 (goblins)",
+    "FX 7 (echoes)","FX 8 (sci-fi)","Sitar","Banjo","Shamisen","Koto","Kalimba",
+    "Bagpipe","Fiddle","Shanai","Tinkle Bell","Agogo","Steel Drums","Woodblock",
+    "Taiko Drum","Melodic Tom","Synth Drum","Reverse Cymbal","Guitar Fret Noise",
+    "Breath Noise","Seashore","Bird Tweet","Telephone Ring","Helicopter","Applause","Gunshot",
+    "Drums"
+];
+
+/* ── Channel color palette for piano roll ── */
+const CH_COLORS = [
+    '#f0a030','#ff4080','#00ddc0','#8b5cf6','#10b981',
+    '#f97316','#06b6d4','#ec4899','#84cc16','#ef4444',
+    '#6366f1','#14b8a6','#f59e0b','#a855f7','#22d3ee','#fb923c'
+];
+
+/* ── State ── */
+let authToken = '';
+let isConnected = false;
+let gradioClient = null;
+let selectedInstruments = [];
+let midiFile = null;
+let batchResults = [];          // [{audio, plot, file}, ...]
+let currentAbort = null;
+
+/* =====================================================================
+   MIDI PARSER — reads binary MIDI and extracts note events
+   ===================================================================== */
+function parseMIDI(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let pos = 0;
+
+    function readUint32() {
+        const v = (bytes[pos]<<24)|(bytes[pos+1]<<16)|(bytes[pos+2]<<8)|bytes[pos+3];
+        pos += 4; return v >>> 0;
+    }
+    function readUint16() {
+        const v = (bytes[pos]<<8)|bytes[pos+1];
+        pos += 2; return v >>> 0;
+    }
+    function readVarLen() {
+        let val = 0, b;
+        do { b = bytes[pos++]; val = (val << 7) | (b & 0x7F); } while (b & 0x80);
+        return val;
+    }
+
+    // Header
+    if (String.fromCharCode(bytes[pos],bytes[pos+1],bytes[pos+2],bytes[pos+3]) !== 'MThd') return null;
+    pos += 4;
+    const hdrLen = readUint32();
+    const fmt = readUint16();
+    const numTrks = readUint16();
+    const timeDiv = readUint16();
+    const tpb = timeDiv & 0x7FFF;
+
+    const notes = [];
+
+    for (let t = 0; t < numTrks; t++) {
+        if (pos + 8 > bytes.length) break;
+        if (String.fromCharCode(bytes[pos],bytes[pos+1],bytes[pos+2],bytes[pos+3]) !== 'MTrk') { pos += 4; continue; }
+        pos += 4;
+        const trkLen = readUint32();
+        const trkEnd = pos + trkLen;
+
+        let time = 0, runSt = 0;
+        const active = {}; // noteNum -> {start, vel}
+
+        while (pos < trkEnd && pos < bytes.length) {
+            time += readVarLen();
+            let st = bytes[pos];
+
+            if (st === 0xFF) {
+                // Meta event
+                pos++;
+                const ml = readVarLen();
+                pos += ml;
+                continue;
+            }
+            if (st === 0xF0 || st === 0xF7) {
+                // SysEx
+                pos++;
+                const sl = readVarLen();
+                pos += sl;
+                continue;
+            }
+
+            if (st & 0x80) {
+                runSt = st; pos++;
+            } else {
+                st = runSt;
+            }
+
+            const type = st & 0xF0;
+            const ch = st & 0x0F;
+
+            if (type === 0x90) {
+                const note = bytes[pos++]; const vel = bytes[pos++];
+                if (vel > 0) {
+                    active[note] = { start: time, vel };
+                } else if (active[note] !== undefined) {
+                    notes.push({ note, start: active[note].start, dur: time - active[note].start, vel: active[note].vel, ch, trk: t });
+                    delete active[note];
+                }
+            } else if (type === 0x80) {
+                const note = bytes[pos++]; bytes[pos++];
+                if (active[note] !== undefined) {
+                    notes.push({ note, start: active[note].start, dur: time - active[note].start, vel: active[note].vel, ch, trk: t });
+                    delete active[note];
+                }
+            } else if (type === 0xA0 || type === 0xB0 || type === 0xE0) {
+                pos += 2;
+            } else if (type === 0xC0 || type === 0xD0) {
+                pos += 1;
+            } else {
+                // Unknown — skip a byte to avoid infinite loop
+                pos++;
+            }
+        }
+        pos = trkEnd;
+    }
+    return { notes, tpb, numTrks };
+}
+
+/* =====================================================================
+   PIANO ROLL RENDERER — draws notes on a canvas with vivid colors
+   ===================================================================== */
+function renderPianoRoll(midiData, canvas, opts = {}) {
+    const { notes } = midiData;
+    if (!notes || notes.length === 0) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#060610';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#605868';
+        ctx.font = '12px "DM Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No note data', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = canvas.clientWidth || canvas.width;
+    const displayH = canvas.clientHeight || canvas.height;
+    canvas.width = displayW * dpr;
+    canvas.height = displayH * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const W = displayW, H = displayH;
+    const padL = 36, padR = 8, padT = 8, padB = 20;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const minN = Math.min(...notes.map(n => n.note));
+    const maxN = Math.max(...notes.map(n => n.note));
+    const range = maxN - minN + 1;
+    const maxT = Math.max(...notes.map(n => n.start + Math.max(n.dur, 1)));
+
+    const noteH = Math.max(1.5, plotH / range);
+    const pxPerTick = plotW / maxT;
+
+    // Background
+    ctx.fillStyle = '#060610';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid — octave lines
+    for (let n = minN; n <= maxN; n++) {
+        const y = padT + plotH - (n - minN + 0.5) * (plotH / range);
+        if (n % 12 === 0) {
+            ctx.strokeStyle = 'rgba(240,160,48,0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+            // Label
+            const oct = Math.floor(n / 12) - 1;
+            const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+            ctx.fillStyle = 'rgba(240,160,48,0.35)';
+            ctx.font = '9px "DM Sans", sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(names[n % 12] + oct, padL - 4, y + 3);
+        } else if (n % 12 === 5 || n % 12 === 7) {
+            // F and G subtle lines
+            ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+        }
+        // Black key shading
+        if ([1,3,6,8,10].includes(n % 12)) {
+            const yTop = padT + plotH - (n - minN + 1) * (plotH / range);
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(padL, yTop, plotW, noteH);
+        }
+    }
+
+    // Draw notes
+    for (const n of notes) {
+        const x = padL + n.start * pxPerTick;
+        const w = Math.max(1.5, n.dur * pxPerTick);
+        const y = padT + plotH - (n.note - minN + 1) * (plotH / range);
+        const col = CH_COLORS[n.ch % CH_COLORS.length];
+        const alpha = 0.5 + (n.vel / 127) * 0.5;
+
+        // Glow
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 4;
+
+        // Note rectangle
+        ctx.fillStyle = col + Math.round(alpha * 255).toString(16).padStart(2, '0');
+        const r = Math.min(2, noteH * 0.3);
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, noteH - 0.5, r);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+    }
+
+    // Time axis ticks
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '8px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
+    const tickInterval = maxT > 4000 ? 1000 : maxT > 1000 ? 500 : maxT > 400 ? 100 : 50;
+    for (let t = 0; t <= maxT; t += tickInterval) {
+        const x = padL + t * pxPerTick;
+        ctx.fillRect(x, H - padB, 1, 4);
+        ctx.fillText(t + 't', x, H - padB + 12);
+    }
+}
+
+/* ── Fetch MIDI and render piano roll onto a canvas ── */
+async function fetchAndRenderPianoRoll(midiUrl, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !midiUrl) return;
+    try {
+        const resp = await fetch(midiUrl);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const buf = await resp.arrayBuffer();
+        const midi = parseMIDI(buf);
+        if (midi && midi.notes.length > 0) {
+            renderPianoRoll(midi, canvas);
+        } else {
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.clientWidth * dpr;
+            canvas.height = canvas.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = '#060610'; ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+            ctx.fillStyle = '#605868'; ctx.font = '11px "DM Sans"';
+            ctx.textAlign = 'center'; ctx.fillText('No notes found', canvas.clientWidth / 2, canvas.clientHeight / 2);
+        }
+    } catch (e) {
+        console.warn('Piano roll fetch/render failed for', midiUrl, e);
+        const canvas2 = document.getElementById(canvasId);
+        if (canvas2) {
+            const ctx = canvas2.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            canvas2.width = canvas2.clientWidth * dpr;
+            canvas2.height = canvas2.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = '#060610'; ctx.fillRect(0, 0, canvas2.clientWidth, canvas2.clientHeight);
+            ctx.fillStyle = '#605868'; ctx.font = '11px "DM Sans"';
+            ctx.textAlign = 'center'; ctx.fillText('Could not load piano roll', canvas2.clientWidth / 2, canvas2.clientHeight / 2);
+        }
+    }
+}
+
+/* =====================================================================
+   BACKGROUND ANIMATION — multi-color particles
+   ===================================================================== */
+(function initBg() {
+    const c = document.getElementById('bg-canvas');
+    const ctx = c.getContext('2d');
+    let w, h, pts = [];
+    function resize() { w = c.width = window.innerWidth; h = c.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+    const colors = [
+        {r:240,g:160,b:48},{r:0,g:221,b:192},{r:139,g:92,b:246},
+        {r:255,g:64,b:128},{r:240,g:160,b:48},{r:0,g:180,b:200}
+    ];
+    for (let i = 0; i < 65; i++) {
+        const col = colors[i % colors.length];
+        pts.push({
+            x:Math.random()*w, y:Math.random()*h,
+            r:Math.random()*1.8+.4,
+            vx:(Math.random()-.5)*.18, vy:-(Math.random()*.25+.08),
+            a:Math.random()*.45+.1, p:Math.random()*Math.PI*2,
+            col
+        });
+    }
+    function draw() {
+        ctx.clearRect(0,0,w,h);
+        // Ambient glow
+        const g1 = ctx.createRadialGradient(w*.4,h*.1,0,w*.4,h*.1,w*.55);
+        g1.addColorStop(0,'rgba(240,160,48,0.025)');g1.addColorStop(1,'rgba(240,160,48,0)');
+        ctx.fillStyle=g1;ctx.fillRect(0,0,w,h);
+        const g2 = ctx.createRadialGradient(w*.75,h*.8,0,w*.75,h*.8,w*.45);
+        g2.addColorStop(0,'rgba(0,221,192,0.018)');g2.addColorStop(1,'rgba(0,221,192,0)');
+        ctx.fillStyle=g2;ctx.fillRect(0,0,w,h);
+        const g3 = ctx.createRadialGradient(w*.15,h*.6,0,w*.15,h*.6,w*.35);
+        g3.addColorStop(0,'rgba(139,92,246,0.015)');g3.addColorStop(1,'rgba(139,92,246,0)');
+        ctx.fillStyle=g3;ctx.fillRect(0,0,w,h);
+        for (const p of pts) {
+            p.x+=p.vx;p.y+=p.vy;p.p+=.012;
+            if(p.y<-10){p.y=h+10;p.x=Math.random()*w}if(p.x<-10)p.x=w+10;if(p.x>w+10)p.x=-10;
+            const alpha=p.a*(.55+.45*Math.sin(p.p));
+            ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.3,p.r),0,Math.PI*2);
+            ctx.fillStyle=`rgba(${p.col.r},${p.col.g},${p.col.b},${alpha.toFixed(3)})`;
+            ctx.fill();
+        }
+        requestAnimationFrame(draw);
+    }
+    if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches) draw();
+})();
+
+/* ── Toast ── */
+function showToast(msg, type='info', dur=4000) {
+    const w = document.getElementById('toastWrap');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    const ic = {ok:'fa-check-circle',err:'fa-exclamation-circle',info:'fa-info-circle'};
+    t.innerHTML = `<i class="fas ${ic[type]||ic.info}"></i><span>${msg}</span>`;
+    w.appendChild(t);
+    setTimeout(()=>{t.style.animation='slideOut .3s ease forwards';setTimeout(()=>t.remove(),300)},dur);
+}
+window.showToast = showToast;
+
+/* ── UI Helpers ── */
+function toggleSec(bodyId, chevId) {
+    const b = document.getElementById(bodyId);
+    const c = document.getElementById(chevId);
+    if (b.style.display==='none') { b.style.display=''; if(c) c.style.transform=''; }
+    else { b.style.display='none'; if(c) c.style.transform='rotate(-90deg)'; }
+}
+function toggleTokVis() {
+    const i = document.getElementById('hfToken');
+    const e = document.getElementById('tokEye');
+    if (i.type==='password') { i.type='text'; e.className='fas fa-eye-slash'; }
+    else { i.type='password'; e.className='fas fa-eye'; }
+}
+
+/* ── URL helpers ── */
+function getFileUrl(d) {
+    if (!d) return null;
+    if (typeof d === 'string') return d.startsWith('http') ? d : SPACE_URL + '/file=' + d;
+    if (d.url) return d.url.startsWith('http') ? d.url : SPACE_URL + d.url;
+    if (d.path) return SPACE_URL + '/file=' + d.path;
+    return null;
+}
+function getFileName(d) {
+    if (!d) return 'output.mid';
+    if (d.orig_name) return d.orig_name;
+    if (typeof d === 'string') return d.split('/').pop() || 'output.mid';
+    if (d.path) return d.path.split('/').pop() || 'output.mid';
+    return 'output.mid';
+}
+
+/* ── Connection ── */
+async function doConnect() {
+    authToken = document.getElementById('hfToken').value.trim();
+    const btn = document.getElementById('connectBtn');
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    dot.className = 'pulse-dot warn'; dot.style.background = '';
+    txt.textContent = 'Connecting...'; txt.style.color = 'var(--warn)';
+    try {
+        if (GradioClient) {
+            const opts = {};
+            if (authToken) opts.hf_token = authToken;
+            gradioClient = await GradioClient.connect(SPACE_ID, opts);
+            isConnected = true;
+            dot.className = 'pulse-dot ok'; dot.style.background = '';
+            txt.textContent = 'Connected'; txt.style.color = 'var(--ok)';
+            btn.innerHTML = '<i class="fas fa-check"></i> Connected';
+            document.getElementById('generateBtn').disabled = false;
+            showToast('Successfully connected to Orpheus Space', 'ok');
+        } else {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            const res = await fetch(SPACE_URL + '/info', { headers, signal: AbortSignal.timeout(15000) });
+            if (res.ok || res.status === 401) {
+                if (res.status === 401 && !authToken) throw new Error('Authentication required — enter your HF token');
+            }
+            isConnected = true;
+            dot.className = 'pulse-dot ok'; dot.style.background = '';
+            txt.textContent = 'Connected (fallback)'; txt.style.color = 'var(--ok)';
+            btn.innerHTML = '<i class="fas fa-check"></i> Connected';
+            document.getElementById('generateBtn').disabled = false;
+            showToast('Connected in fallback mode', 'info', 5000);
+        }
+    } catch (e) {
+        isConnected = false;
+        dot.className = 'pulse-dot err'; dot.style.background = '';
+        txt.textContent = 'Connection failed'; txt.style.color = 'var(--err)';
+        btn.innerHTML = '<i class="fas fa-link"></i> Retry';
+        showToast('Connection failed: ' + e.message, 'err');
+    }
+    btn.disabled = false;
+}
+window.doConnect = doConnect;
+
+/* ── Fallback raw API ── */
+async function rawCall(apiName, data) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    currentAbort = new AbortController();
+    let initRes;
+    try {
+        initRes = await fetch(SPACE_URL + '/call/' + apiName, {
+            method:'POST', headers, body:JSON.stringify({data}), signal:currentAbort.signal
+        });
+    } catch(e) {
+        // Try /api/ prefix
+        initRes = await fetch(SPACE_URL + '/api/' + apiName, {
+            method:'POST', headers, body:JSON.stringify({data}), signal:currentAbort.signal
+        });
+    }
+    if (!initRes.ok) throw new Error(`API call failed (${initRes.status})`);
+    const { event_id } = await initRes.json();
+    const streamRes = await fetch(SPACE_URL + '/call/' + apiName + '/' + event_id, { signal:currentAbort.signal });
+    const reader = streamRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', resultData = null, curEvent = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n'); buffer = lines.pop() || '';
+        for (const line of lines) {
+            const t = line.trim();
+            if (t.startsWith('event:')) curEvent = t.substring(6).trim();
+            else if (t.startsWith('data:')) {
+                try {
+                    const p = JSON.parse(t.substring(5).trim());
+                    if (curEvent === 'complete') resultData = p;
+                    if (curEvent === 'error') throw new Error(p.error || p.message || 'Server error');
+                } catch(e) { if (e.message && !e.message.startsWith('Unexpected')) throw e; }
+            }
+        }
+    }
+    if (!resultData) throw new Error('No data received from API');
+    return resultData;
+}
+
+/* ── Unified API call ── */
+async function apiCall(apiName, namedParams) {
+    if (gradioClient) {
+        const result = await gradioClient.predict('/' + apiName.replace(/^\//,''), namedParams);
+        return result.data;
+    } else {
+        const data = Object.values(namedParams);
+        return await rawCall(apiName, data);
+    }
+}
+
+/* ── MIDI file handling ── */
+function handleMidiFile(input) {
+    if (input.files && input.files[0]) {
+        midiFile = input.files[0];
+        const z = document.getElementById('dropZone');
+        const c = document.getElementById('dropContent');
+        z.classList.add('has-file');
+        c.innerHTML = `<i class="fas fa-file-audio" style="font-size:1.5rem;color:var(--ok);margin-bottom:.5rem;display:block"></i><span style="font-size:.85rem;color:var(--text)">${midiFile.name}</span><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${(midiFile.size/1024).toFixed(1)} KB</div>`;
+        document.getElementById('clearMidiBtn').style.display = '';
+        showToast('MIDI file loaded: ' + midiFile.name, 'ok');
+    }
+}
+window.handleMidiFile = handleMidiFile;
+
+function handleDrop(e) {
+    e.preventDefault(); e.currentTarget.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const f = e.dataTransfer.files[0];
+        if (/\.(mid|midi|kar)$/i.test(f.name)) {
+            midiFile = f;
+            const z = document.getElementById('dropZone');
+            const c = document.getElementById('dropContent');
+            z.classList.add('has-file');
+            c.innerHTML = `<i class="fas fa-file-audio" style="font-size:1.5rem;color:var(--ok);margin-bottom:.5rem;display:block"></i><span style="font-size:.85rem;color:var(--text)">${f.name}</span><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${(f.size/1024).toFixed(1)} KB</div>`;
+            document.getElementById('clearMidiBtn').style.display = '';
+            showToast('MIDI file loaded: ' + f.name, 'ok');
+        } else showToast('Please upload a .mid, .midi, or .kar file', 'err');
+    }
+}
+window.handleDrop = handleDrop;
+
+function clearMidi() {
+    midiFile = null;
+    const z = document.getElementById('dropZone');
+    z.classList.remove('has-file');
+    document.getElementById('dropContent').innerHTML = `<i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--accent-dk);margin-bottom:.5rem;display:block"></i><span style="font-size:.85rem;color:var(--text2)">Drop a MIDI file here or click to browse</span><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">.mid, .midi, .kar</div>`;
+    document.getElementById('clearMidiBtn').style.display = 'none';
+    document.getElementById('midiInput').value = '';
+}
+window.clearMidi = clearMidi;
+
+/* ── Instrument selector ── */
+function openInstrDD() { filterInstr(); document.getElementById('instrDropdown').classList.add('open'); }
+window.openInstrDD = openInstrDD;
+
+function filterInstr() {
+    const q = document.getElementById('instrSearch').value.toLowerCase();
+    const dd = document.getElementById('instrDropdown');
+    dd.innerHTML = '';
+    const filt = INSTRUMENTS.filter(n => n.toLowerCase().includes(q));
+    for (const name of filt) {
+        const isSel = selectedInstruments.includes(name);
+        const isFull = selectedInstruments.length >= 5 && !isSel;
+        const d = document.createElement('div');
+        d.className = 'dd-item' + (isFull ? ' disabled' : '');
+        d.textContent = name + (isSel ? ' \u2713' : '');
+        d.onclick = (e) => { e.stopPropagation(); toggleInstr(name); };
+        dd.appendChild(d);
+    }
+    if (!filt.length) { const d = document.createElement('div'); d.className='dd-item'; d.textContent='No instruments found'; d.style.opacity='.5'; dd.appendChild(d); }
+    dd.classList.add('open');
+}
+window.filterInstr = filterInstr;
+
+function toggleInstr(name) {
+    const i = selectedInstruments.indexOf(name);
+    if (i >= 0) selectedInstruments.splice(i, 1);
+    else if (selectedInstruments.length < 5) selectedInstruments.push(name);
+    else { showToast('Maximum 5 instruments allowed', 'err'); return; }
+    renderSelInstr(); filterInstr();
+}
+function removeInstr(name) {
+    const i = selectedInstruments.indexOf(name);
+    if (i >= 0) selectedInstruments.splice(i, 1);
+    renderSelInstr(); filterInstr();
+}
+function renderSelInstr() {
+    const w = document.getElementById('selectedInstr');
+    w.innerHTML = '';
+    for (const n of selectedInstruments) {
+        const t = document.createElement('span');
+        t.className = 'tag';
+        const safeName = n.replace(/'/g, "\\'");
+        t.innerHTML = `${n} <span class="rm" onclick="window._rmInstr('${safeName}')"><i class="fas fa-times"></i></span>`;
+        w.appendChild(t);
+    }
+}
+window._rmInstr = function(name) { removeInstr(name); };
+document.addEventListener('click', (e) => {
+    const w = document.getElementById('instrDropWrap');
+    if (w && !w.contains(e.target)) document.getElementById('instrDropdown').classList.remove('open');
+});
+
+/* ── Loading overlay ── */
+function showLoad(title, msg) {
+    document.getElementById('loadingTitle').textContent = title;
+    document.getElementById('loadingMsg').textContent = msg;
+    document.getElementById('loadingOverlay').style.display = '';
+}
+function updateLoad(msg) { document.getElementById('loadingMsg').textContent = msg; }
+function hideLoad() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
+window._cancelGen = function() {
+    if (currentAbort) { currentAbort.abort(); currentAbort = null; }
+    hideLoad();
+    document.getElementById('generateBtn').disabled = false;
+    showToast('Generation cancelled', 'info');
+};
+
+/* =====================================================================
+   GENERATE — fixed parsing for both 2-item and 3-item per batch formats
+   ===================================================================== */
+async function doGenerate() {
+    if (!isConnected) { showToast('Please connect to the Space first', 'err'); return; }
+    const genBtn = document.getElementById('generateBtn');
+    genBtn.disabled = true;
+
+    try {
+        const model = document.getElementById('modelSelect').value;
+        showLoad('Preparing Generation', 'Setting model to ' + model + '...');
+        await apiCall('update_state_from_dropdown', { choice: model });
+
+        const params = {
+            input_midi: midiFile || null,
+            prime_instruments: selectedInstruments,
+            num_prime_tokens: parseInt(document.getElementById('primeTokens').value),
+            num_gen_tokens: parseInt(document.getElementById('genTokens').value),
+            model_temperature: parseFloat(document.getElementById('temperature').value),
+            model_top_p: parseFloat(document.getElementById('topP').value),
+            add_drums: document.getElementById('addDrums').checked,
+            add_outro: document.getElementById('addOutro').checked,
+        };
+
+        showLoad('Generating Music', 'This may take several minutes on first run (waking GPU)...');
+        const result = await apiCall('generate_music_and_state', params);
+
+        console.log('API result length:', Array.isArray(result) ? result.length : 'not array', result);
+
+        if (Array.isArray(result) && result.length >= NUM_BATCHES * 2) {
+            // Auto-detect items per batch: 2 (audio, file) or 3 (audio, plot, file)
+            const itemsPerBatch = result.length >= NUM_BATCHES * 3 ? 3 : 2;
+            batchResults = [];
+            for (let i = 0; i < NUM_BATCHES; i++) {
+                const base = i * itemsPerBatch;
+                if (itemsPerBatch === 3) {
+                    batchResults.push({
+                        audio: result[base],
+                        plot: result[base + 1],
+                        file: result[base + 2]
+                    });
+                } else {
+                    batchResults.push({
+                        audio: result[base],
+                        plot: null,  // No plot from API — will render client-side
+                        file: result[base + 1]
+                    });
+                }
+            }
+            renderBatches();
+            showToast(`Generation complete — ${NUM_BATCHES} batches ready (${itemsPerBatch === 3 ? 'with' : 'without'} server plots)`, 'ok');
+        } else {
+            console.log('Unexpected API result:', result);
+            showToast('Unexpected response format — check console', 'err');
+        }
+    } catch (e) {
+        if (e.name === 'AbortError') return;
+        showToast('Generation failed: ' + e.message, 'err', 6000);
+        console.error(e);
+    } finally {
+        hideLoad(); genBtn.disabled = false; currentAbort = null;
+    }
+}
+window.doGenerate = doGenerate;
+
+/* =====================================================================
+   BATCH RENDERING — includes client-side piano roll canvases
+   ===================================================================== */
+function renderBatches() {
+    const grid = document.getElementById('batchGrid');
+    grid.innerHTML = '';
+    const pianoRollFetches = [];
+
+    for (let i = 0; i < NUM_BATCHES; i++) {
+        const b = batchResults[i];
+        const card = document.createElement('div');
+        card.className = 'batch-card';
+
+        const audioUrl = b && b.audio ? getFileUrl(b.audio) : null;
+        const plotUrl = b && b.plot ? getFileUrl(b.plot) : null;
+        const fileUrl = b && b.file ? getFileUrl(b.file) : null;
+        const fileName = b && b.file ? getFileName(b.file) : `batch_${i}.mid`;
+
+        const canvasId = `pianoRoll-batch-${i}`;
+
+        let audioHtml = '<div style="font-size:.78rem;color:var(--muted);padding:.5rem 0">No audio</div>';
+        if (audioUrl) audioHtml = `<audio controls preload="none" style="width:100%;height:36px"><source src="${audioUrl}" type="audio/mpeg"></audio>`;
+
+        // Plot: use server image if available, otherwise client-side canvas
+        let plotHtml = `<canvas id="${canvasId}" class="piano-roll-canvas" style="height:110px;margin-top:.6rem"></canvas>`;
+
+        let fileHtml = '';
+        if (fileUrl) fileHtml = `<a href="${fileUrl}" download="${fileName}" class="btn btn-ghost" style="font-size:.72rem;padding:.3rem .6rem;margin-top:.5rem;width:100%;justify-content:center"><i class="fas fa-download"></i> ${fileName}</a>`;
+
+        // Color accent for batch number
+        const accentIdx = i % CH_COLORS.length;
+        const batchColor = CH_COLORS[accentIdx];
+
+        card.innerHTML = `
+            <div class="batch-head">
+                <span style="font-size:.82rem;font-weight:700;color:${batchColor}">Batch #${i}</span>
+                <span style="font-size:.68rem;color:var(--muted)">${b ? 'Ready' : 'Empty'}</span>
+            </div>
+            <div class="batch-body">
+                ${audioHtml}
+                ${plotHtml}
+                ${fileHtml}
+            </div>`;
+        grid.appendChild(card);
+
+        // Schedule piano roll rendering
+        if (b) {
+            if (plotUrl) {
+                // Server plot available — load as image, but also try MIDI for interactive canvas
+                const canvas = document.getElementById(canvasId);
+                if (canvas) {
+                    // Replace canvas with img for server plot
+                    const img = document.createElement('img');
+                    img.src = plotUrl;
+                    img.alt = `Batch ${i} piano roll`;
+                    img.style.cssText = 'width:100%;border-radius:8px;margin-top:.6rem;border:1px solid var(--border);background:#060610';
+                    img.loading = 'lazy';
+                    canvas.replaceWith(img);
+                }
+            } else if (fileUrl) {
+                // No server plot — render client-side from MIDI
+                pianoRollFetches.push(fetchAndRenderPianoRoll(fileUrl, canvasId));
+            }
+        }
+    }
+
+    // Fire all piano roll fetches concurrently
+    Promise.allSettled(pianoRollFetches).then(() => {
+        console.log('All batch piano rolls processed');
+    });
+}
+renderBatches();
+
+/* =====================================================================
+   COMPOSITION BUILDER — fixed to handle 2 or 3 return items
+   ===================================================================== */
+function updateFinal(audioData, plotData, fileData) {
+    const audioEl = document.getElementById('finalAudio');
+    const audioUrl = getFileUrl(audioData);
+    if (audioUrl) { audioEl.src = audioUrl; audioEl.load(); } else audioEl.src = '';
+
+    const plotArea = document.getElementById('finalPlotArea');
+    const plotUrl = getFileUrl(plotData);
+    const fileUrl = getFileUrl(fileData);
+    const fileName = getFileName(fileData);
+
+    if (plotUrl) {
+        plotArea.innerHTML = `<img src="${plotUrl}" alt="Composition piano roll" style="width:100%;border-radius:8px">`;
+    } else {
+        // Render client-side piano roll from MIDI
+        const canvasId = 'pianoRoll-composition';
+        plotArea.innerHTML = `<canvas id="${canvasId}" class="piano-roll-canvas" style="width:100%;height:200px"></canvas>`;
+        if (fileUrl) {
+            fetchAndRenderPianoRoll(fileUrl, canvasId);
+        }
+    }
+
+    const fileArea = document.getElementById('finalFileArea');
+    if (fileUrl) {
+        fileArea.innerHTML = `<i class="fas fa-file-audio" style="color:var(--accent)"></i><span style="font-size:.82rem;color:var(--text)">${fileName}</span><a href="${fileUrl}" download="${fileName}" class="btn btn-ghost" style="font-size:.72rem;padding:.25rem .5rem;margin-left:auto"><i class="fas fa-download"></i> Download</a>`;
+    } else fileArea.innerHTML = '<span style="font-size:.82rem;color:var(--muted)">No file available</span>';
+}
+
+async function doAddBatch() {
+    if (!isConnected) { showToast('Please connect to the Space first', 'err'); return; }
+    const bn = parseInt(document.getElementById('batchNumSlider').value);
+    showLoad('Adding Batch', `Adding batch #${bn} to composition...`);
+    try {
+        const result = await apiCall('add_batch', { batch_number: bn });
+        console.log('add_batch result:', result);
+        if (Array.isArray(result)) {
+            if (result.length >= 3) {
+                // 3 items: audio, plot, file
+                updateFinal(result[0], result[1], result[2]);
+            } else if (result.length >= 2) {
+                // 2 items: audio, file (no plot from server)
+                updateFinal(result[0], null, result[1]);
+            } else if (result.length === 1) {
+                // 1 item: might be audio only
+                updateFinal(result[0], null, null);
+            }
+            showToast(`Batch #${bn} added to composition`, 'ok');
+        } else {
+            showToast('Unexpected response from add_batch', 'err');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') showToast('Add batch failed: ' + e.message, 'err');
+    }
+    finally { hideLoad(); currentAbort = null; }
+}
+window.doAddBatch = doAddBatch;
+
+async function doRemoveBatch() {
+    if (!isConnected) { showToast('Please connect to the Space first', 'err'); return; }
+    const bn = parseInt(document.getElementById('batchNumSlider').value);
+    const nt = parseInt(document.getElementById('genTokens').value);
+    showLoad('Removing Batch', `Removing batch #${bn} from composition...`);
+    try {
+        const result = await apiCall('remove_batch', { batch_number: bn, num_tokens: nt });
+        console.log('remove_batch result:', result);
+        if (Array.isArray(result)) {
+            if (result.length >= 3) {
+                updateFinal(result[0], result[1], result[2]);
+            } else if (result.length >= 2) {
+                updateFinal(result[0], null, result[1]);
+            } else if (result.length === 1) {
+                updateFinal(result[0], null, null);
+            }
+            showToast(`Batch #${bn} removed`, 'ok');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') showToast('Remove batch failed: ' + e.message, 'err');
+    }
+    finally { hideLoad(); currentAbort = null; }
+}
+window.doRemoveBatch = doRemoveBatch;
+
+async function doClear() {
+    if (!isConnected) { showToast('Please connect to the Space first', 'err'); return; }
+    showLoad('Clearing', 'Clearing composition...');
+    try {
+        await apiCall('clear', {});
+    } catch (e) { /* clear locally anyway */ }
+    document.getElementById('finalAudio').src = '';
+    document.getElementById('finalPlotArea').innerHTML = '<span style="font-size:.82rem;color:var(--muted)">Plot will appear here</span>';
+    document.getElementById('finalFileArea').innerHTML = '<span style="font-size:.82rem;color:var(--muted)">No composition yet</span>';
+    hideLoad(); currentAbort = null;
+    showToast('Composition cleared', 'ok');
+}
+window.doClear = doClear;
+
+/* ── Responsive layout ── */
+function adjustLayout() {
+    const w = window.innerWidth;
+    const s = w < 700 ? '1fr' : '1fr 1fr';
+    document.getElementById('inputGrid').style.gridTemplateColumns = s;
+    document.getElementById('optGrid').style.gridTemplateColumns = s;
+    document.getElementById('finalGrid').style.gridTemplateColumns = s;
+}
+adjustLayout(); window.addEventListener('resize', adjustLayout);
+
+/* ── Keyboard ── */
+document.getElementById('instrSearch').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') document.getElementById('instrDropdown').classList.remove('open');
+});
+
+/* ── Entrance animation ── */
+document.querySelectorAll('.card,.sec-title').forEach((el, i) => {
+    el.style.opacity = '0'; el.style.transform = 'translateY(14px)';
+    el.style.transition = 'opacity .5s ease, transform .5s ease';
+    setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, 80 + i * 55);
+});
+</script>
+</body>
+</html>
